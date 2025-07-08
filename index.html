@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Project Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for a subtle animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .progress-bar-inner {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4">
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center">
+            <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-lg font-medium">Connecting to service...</p>
+        </div>
+
+        <!-- View Selector -->
+        <div id="view-selector" class="hidden text-center fade-in">
+            <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Project Tracker</h1>
+                <p class="text-gray-600 mb-8">Are you an administrator or a client?</p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button id="show-admin-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">
+                        Admin Dashboard
+                    </button>
+                    <button id="show-client-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition duration-300">
+                        Check Project Status
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="admin-view" class="hidden w-full max-w-5xl fade-in">
+            <button id="back-to-selector-admin" class="mb-4 text-blue-600 hover:underline">&larr; Back to main menu</button>
+            <h1 class="text-3xl font-bold mb-1">Admin Dashboard</h1>
+            <p class="text-sm text-gray-500 mb-4">Your Admin ID: <code id="admin-id-display" class="bg-gray-100 p-1 rounded"></code></p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Create Project Form -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Create New Project</h2>
+                    <form id="create-project-form" class="space-y-4">
+                        <div>
+                            <label for="project-name" class="block text-sm font-medium text-gray-700">Project Name</label>
+                            <input type="text" id="project-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="client-name" class="block text-sm font-medium text-gray-700">Client Name</label>
+                            <input type="text" id="client-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700">Initial Status</label>
+                            <select id="status" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option>Review work</option>
+                                <option>Gathering literature</option>
+                                <option>Write-up/analysis in progress</option>
+                                <option>Team examination</option>
+                                <option>Proofreading</option>
+                                <option>Ready</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="details" class="block text-sm font-medium text-gray-700">Details / Notes</label>
+                            <textarea id="details" rows="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">Create Project</button>
+                    </form>
+                </div>
+
+                <!-- Project List -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Your Projects</h2>
+                    <div id="project-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                        <!-- Projects will be dynamically inserted here -->
+                        <p id="no-projects-message" class="text-gray-500">You haven't created any projects yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client View -->
+        <div id="client-view" class="hidden w-full max-w-md fade-in">
+             <button id="back-to-selector-client" class="mb-4 text-blue-600 hover:underline">&larr; Back to main menu</button>
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Check Project Status</h1>
+                <p class="text-gray-600 mb-6">Enter the access code provided by your project manager.</p>
+                <form id="check-status-form" class="space-y-4">
+                    <div>
+                        <label for="access-code" class="block text-sm font-medium text-gray-700">Access Code</label>
+                        <input type="text" id="access-code" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">Check Status</button>
+                </form>
+                <div id="status-display" class="mt-6 hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
+                <h2 class="text-2xl font-bold mb-6">Edit Project</h2>
+                <form id="edit-project-form" class="space-y-4">
+                    <input type="hidden" id="edit-project-id">
+                    <input type="hidden" id="edit-access-code">
+                    <div>
+                        <label for="edit-project-name" class="block text-sm font-medium text-gray-700">Project Name</label>
+                        <input type="text" id="edit-project-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                     <div>
+                        <label for="edit-client-name" class="block text-sm font-medium text-gray-700">Client Name</label>
+                        <input type="text" id="edit-client-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="edit-status" class="block text-sm font-medium text-gray-700">Status</label>
+                        <select id="edit-status" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option>Review work</option>
+                            <option>Gathering literature</option>
+                            <option>Write-up/analysis in progress</option>
+                            <option>Team examination</option>
+                            <option>Proofreading</option>
+                            <option>Ready</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit-details" class="block text-sm font-medium text-gray-700">Details / Notes</label>
+                        <textarea id="edit-details" rows="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                    <div class="flex gap-4 mt-6">
+                         <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Save Changes</button>
+                         <button type="button" id="cancel-edit-btn" class="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4" id="modal-title">Delete Project</h3>
+                <div class="mt-2">
+                    <p class="text-sm text-gray-500">Are you sure you want to delete this project? This action cannot be undone.</p>
+                </div>
+                <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button id="confirm-delete-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm">
+                        Delete
+                    </button>
+                    <button id="cancel-delete-btn" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Custom Toast Notification -->
+        <div id="toast" class="hidden fixed bottom-5 right-5 bg-gray-900 text-white py-2 px-5 rounded-lg shadow-lg fade-in">
+            <p id="toast-message"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        /*
+         * ===================================================================================
+         * ===================================================================================
+         *
+         * MANDATORY STEP: UPDATE FIREBASE SECURITY RULES
+         *
+         * The "Missing or insufficient permissions" error means your Firestore security
+         * rules are blocking access. You MUST replace your rules with the ones below
+         * for the application to work correctly.
+         *
+         * 1. Go to your Firebase project console.
+         * 2. Navigate to Build > Firestore Database.
+         * 3. Click the "Rules" tab.
+         * 4. Delete everything in the editor and paste the following rules.
+         * 5. Click "Publish".
+         *
+         * ---------------------------------------------------------------------------------
+         * rules_version = '2';
+         * service cloud.firestore {
+         * match /databases/{database}/documents {
+         *
+         * // Allow signed-in users to manage their own projects
+         * match /artifacts/{appId}/users/{userId}/projects/{projectId} {
+         * allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+         * }
+         *
+         * // Allow anyone to view a project's status using an access code
+         * match /artifacts/{appId}/public/data/statuses/{accessCode} {
+         * allow get: if true;
+         * }
+         *
+         * // Allow a signed-in user to create, update, and delete public statuses
+         * match /artifacts/{appId}/public/data/statuses/{accessCode} {
+         * allow write, delete: if request.auth != null;
+         * }
+         * }
+         * }
+         * ---------------------------------------------------------------------------------
+         *
+         * ===================================================================================
+         * ===================================================================================
+         */
+
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, doc, updateDoc, deleteDoc, getDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- App Configuration & Initialization ---
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'project-tracker-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId;
+        const ADMIN_COLLECTION_NAME = "projects";
+        const PUBLIC_STATUS_COLLECTION_NAME = "statuses";
+
+        // --- DOM Element References ---
+        const loadingEl = document.getElementById('loading');
+        const viewSelectorEl = document.getElementById('view-selector');
+        const adminViewEl = document.getElementById('admin-view');
+        const clientViewEl = document.getElementById('client-view');
+        const projectListEl = document.getElementById('project-list');
+        const noProjectsMessageEl = document.getElementById('no-projects-message');
+        const statusDisplayEl = document.getElementById('status-display');
+        const adminIdDisplayEl = document.getElementById('admin-id-display');
+        
+        // Modals and Forms
+        const editModalEl = document.getElementById('edit-modal');
+        const deleteModalEl = document.getElementById('delete-modal');
+        const createProjectForm = document.getElementById('create-project-form');
+        const editProjectForm = document.getElementById('edit-project-form');
+        const checkStatusForm = document.getElementById('check-status-form');
+
+        // Buttons
+        const showAdminBtn = document.getElementById('show-admin-btn');
+        const showClientBtn = document.getElementById('show-client-btn');
+        const backToSelectorAdminBtn = document.getElementById('back-to-selector-admin');
+        const backToSelectorClientBtn = document.getElementById('back-to-selector-client');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        
+        // Toast Notification
+        const toastEl = document.getElementById('toast');
+        const toastMessageEl = document.getElementById('toast-message');
+
+
+        // --- Main App Logic ---
+
+        function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug');
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                loadingEl.innerHTML = `<p class="text-red-500">Error: Could not connect to services. Please refresh.</p>`;
+            }
+        }
+
+        function setupAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    adminIdDisplayEl.textContent = userId;
+                    loadingEl.classList.add('hidden');
+                    viewSelectorEl.classList.remove('hidden');
+                    listenForProjects();
+                } else {
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Sign-in failed:", error);
+                        loadingEl.innerHTML = `<p class="text-red-500">Authentication failed. Please check your connection.</p>`;
+                    }
+                }
+            });
+        }
+
+        // --- View Management ---
+
+        function showView(view) {
+            viewSelectorEl.classList.add('hidden');
+            adminViewEl.classList.add('hidden');
+            clientViewEl.classList.add('hidden');
+            if (view === 'selector') viewSelectorEl.classList.remove('hidden');
+            if (view === 'admin') adminViewEl.classList.remove('hidden');
+            if (view === 'client') clientViewEl.classList.remove('hidden');
+        }
+
+        // --- Toast Notification ---
+        
+        function showToast(message, isError = false) {
+            toastMessageEl.textContent = message;
+            toastEl.className = `fixed bottom-5 right-5 text-white py-2 px-5 rounded-lg shadow-lg fade-in ${isError ? 'bg-red-600' : 'bg-gray-900'}`;
+            toastEl.classList.remove('hidden');
+            setTimeout(() => {
+                toastEl.classList.add('hidden');
+            }, 3000);
+        }
+
+        // --- Admin View Logic ---
+
+        function listenForProjects() {
+            if (!db || !userId) return;
+            const adminProjectsPath = `/artifacts/${appId}/users/${userId}/${ADMIN_COLLECTION_NAME}`;
+            const projectsCollection = collection(db, adminProjectsPath);
+            const q = query(projectsCollection);
+
+            onSnapshot(q, (querySnapshot) => {
+                const projects = [];
+                querySnapshot.forEach((doc) => {
+                    projects.push({ id: doc.id, ...doc.data() });
+                });
+                renderProjects(projects);
+            }, (error) => {
+                console.error("Error listening for project updates:", error);
+                if (error.code === 'permission-denied') {
+                     projectListEl.innerHTML = `<p class="text-red-600 font-bold text-center">Permission Denied!</p><p class="text-red-500 mt-2 text-center">Your Firestore security rules are blocking access. Please update them in your Firebase Console. The required rules are in the large comment block at the top of this code.</p>`;
+                } else {
+                     projectListEl.innerHTML = `<p class="text-red-500 text-center">Could not load projects. Error: ${error.message}</p>`;
+                }
+            });
+        }
+        
+        function renderProjects(projects) {
+            projectListEl.innerHTML = '';
+            if (projects.length === 0) {
+                noProjectsMessageEl.classList.remove('hidden');
+                 projectListEl.appendChild(noProjectsMessageEl);
+            } else {
+                noProjectsMessageEl.classList.add('hidden');
+                projects.forEach(project => {
+                    const card = document.createElement('div');
+                    card.className = 'p-4 border rounded-lg bg-gray-50 transition hover:shadow-md';
+                    
+                    const statusInfo = getStatusInfo(project.status);
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-lg">${project.projectName}</h3>
+                                <p class="text-sm text-gray-600">Client: ${project.clientName}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button data-action="edit" class="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <button data-action="delete" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium ${statusInfo.text}">${project.status}</span>
+                                <span class="text-sm font-medium ${statusInfo.text}">${statusInfo.percentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="${statusInfo.bg} h-2.5 rounded-full progress-bar-inner" style="width: ${statusInfo.percentage}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 bg-white p-3 rounded-md border">
+                            <p class="text-xs text-gray-500 mb-1">ACCESS CODE</p>
+                            <div class="flex justify-between items-center">
+                                <code class="text-sm font-mono bg-gray-100 p-2 rounded-md">${project.accessCode}</code>
+                                <button data-action="copy" class="bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-md hover:bg-gray-300 transition">Copy</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', (e) => {
+                        const action = e.target.closest('button')?.dataset.action;
+                        if (action === 'edit') openEditModal(project);
+                        if (action === 'delete') openDeleteModal(project);
+                        if (action === 'copy') handleCopyCode(project.accessCode);
+                    });
+                    
+                    projectListEl.appendChild(card);
+                });
+            }
+        }
+
+        async function handleCreateProject(e) {
+            e.preventDefault();
+            const newProjectData = {
+                projectName: createProjectForm['project-name'].value,
+                clientName: createProjectForm['client-name'].value,
+                status: createProjectForm['status'].value,
+                details: createProjectForm['details'].value,
+                accessCode: crypto.randomUUID().split('-')[0],
+                createdAt: new Date().toISOString(),
+            };
+
+            try {
+                const adminProjectsPath = `/artifacts/${appId}/users/${userId}/${ADMIN_COLLECTION_NAME}`;
+                const privateCollection = collection(db, adminProjectsPath);
+                await addDoc(privateCollection, newProjectData);
+
+                const publicStatusPath = `/artifacts/${appId}/public/data/${PUBLIC_STATUS_COLLECTION_NAME}`;
+                const publicDoc = doc(db, publicStatusPath, newProjectData.accessCode);
+                await setDoc(publicDoc, {
+                    projectName: newProjectData.projectName,
+                    status: newProjectData.status,
+                    details: newProjectData.details,
+                });
+
+                createProjectForm.reset();
+                showToast('Project created successfully!');
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showToast('Error: Could not create project.', true);
+            }
+        }
+        
+        function handleCopyCode(code) {
+            const tempInput = document.createElement('input');
+            document.body.appendChild(tempInput);
+            tempInput.value = code;
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast('Access code copied to clipboard!');
+        }
+        
+        // --- Delete Logic ---
+        
+        function openDeleteModal(project) {
+            deleteModalEl.classList.remove('hidden');
+            // Pass project data to the confirm button
+            confirmDeleteBtn.dataset.projectId = project.id;
+            confirmDeleteBtn.dataset.accessCode = project.accessCode;
+        }
+
+        function closeDeleteModal() {
+            deleteModalEl.classList.add('hidden');
+        }
+
+        async function handleDeleteProject() {
+            const projectId = confirmDeleteBtn.dataset.projectId;
+            const accessCode = confirmDeleteBtn.dataset.accessCode;
+
+            if (!projectId || !accessCode) {
+                showToast('Could not delete project. Missing ID.', true);
+                return;
+            }
+
+            try {
+                const privateDocRef = doc(db, `/artifacts/${appId}/users/${userId}/${ADMIN_COLLECTION_NAME}`, projectId);
+                await deleteDoc(privateDocRef);
+
+                const publicDocRef = doc(db, `/artifacts/${appId}/public/data/${PUBLIC_STATUS_COLLECTION_NAME}`, accessCode);
+                await deleteDoc(publicDocRef);
+
+                showToast('Project deleted successfully.');
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                showToast(`Error: Could not delete project. ${error.message}`, true);
+            } finally {
+                closeDeleteModal();
+            }
+        }
+
+        // --- Edit Modal Logic ---
+        
+        function openEditModal(project) {
+            editProjectForm['edit-project-id'].value = project.id;
+            editProjectForm['edit-access-code'].value = project.accessCode;
+            editProjectForm['edit-project-name'].value = project.projectName;
+            editProjectForm['edit-client-name'].value = project.clientName;
+            editProjectForm['edit-status'].value = project.status;
+            editProjectForm['edit-details'].value = project.details;
+            editModalEl.classList.remove('hidden');
+        }
+        
+        function closeEditModal() {
+            editModalEl.classList.add('hidden');
+        }
+        
+        async function handleUpdateProject(e) {
+            e.preventDefault();
+            const projectId = editProjectForm['edit-project-id'].value;
+            const accessCode = editProjectForm['edit-access-code'].value;
+            
+            const updatedPrivateData = {
+                projectName: editProjectForm['edit-project-name'].value,
+                clientName: editProjectForm['edit-client-name'].value,
+                status: editProjectForm['edit-status'].value,
+                details: editProjectForm['edit-details'].value,
+            };
+
+            const updatedPublicData = {
+                projectName: updatedPrivateData.projectName,
+                status: updatedPrivateData.status,
+                details: updatedPrivateData.details,
+            };
+            
+            try {
+                const privateDocRef = doc(db, `/artifacts/${appId}/users/${userId}/${ADMIN_COLLECTION_NAME}`, projectId);
+                await updateDoc(privateDocRef, updatedPrivateData);
+
+                const publicDocRef = doc(db, `/artifacts/${appId}/public/data/${PUBLIC_STATUS_COLLECTION_NAME}`, accessCode);
+                await updateDoc(publicDocRef, updatedPublicData);
+
+                closeEditModal();
+                showToast('Project updated successfully!');
+            } catch (error) {
+                console.error("Error updating document: ", error);
+                showToast('Error: Could not update project.', true);
+            }
+        }
+
+        // --- Client View Logic ---
+
+        async function handleCheckStatus(e) {
+            e.preventDefault();
+            const accessCode = document.getElementById('access-code').value.trim();
+            if (!accessCode) {
+                renderStatusError('Please enter an access code.');
+                return;
+            }
+
+            statusDisplayEl.innerHTML = `<p class="text-gray-500">Searching...</p>`;
+            statusDisplayEl.classList.remove('hidden');
+            
+            try {
+                const publicDocRef = doc(db, `/artifacts/${appId}/public/data/${PUBLIC_STATUS_COLLECTION_NAME}`, accessCode);
+                const docSnap = await getDoc(publicDocRef);
+
+                if (!docSnap.exists()) {
+                    renderStatusError('Invalid access code. Please check the code and try again.');
+                } else {
+                    renderProjectStatus(docSnap.data());
+                }
+            } catch (error) {
+                console.error("Error fetching project status:", error);
+                renderStatusError('An error occurred. Please try again later.');
+            }
+        }
+
+        function renderProjectStatus(project) {
+            const statusInfo = getStatusInfo(project.status);
+            statusDisplayEl.innerHTML = `
+                <div class="border-t pt-6">
+                    <h3 class="text-sm font-semibold text-gray-500">PROJECT</h3>
+                    <p class="text-xl font-bold text-gray-900 mb-4">${project.projectName}</p>
+                    
+                    <h3 class="text-sm font-semibold text-gray-500 mb-2">STATUS</h3>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium ${statusInfo.text}">${project.status}</span>
+                            <span class="text-sm font-medium ${statusInfo.text}">${statusInfo.percentage}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3.5">
+                            <div class="${statusInfo.bg} h-3.5 rounded-full progress-bar-inner" style="width: ${statusInfo.percentage}%"></div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-semibold text-gray-500 mt-6">DETAILS</h3>
+                    <p class="text-gray-700 whitespace-pre-wrap">${project.details || 'No details provided.'}</p>
+                </div>
+            `;
+            statusDisplayEl.classList.remove('hidden');
+        }
+        
+        function renderStatusError(message) {
+            statusDisplayEl.innerHTML = `<p class="text-red-600 font-medium">${message}</p>`;
+            statusDisplayEl.classList.remove('hidden');
+        }
+        
+        function getStatusInfo(status) {
+            const statuses = [
+                'Review work', 
+                'Gathering literature', 
+                'Write-up/analysis in progress', 
+                'Team examination', 
+                'Proofreading', 
+                'Ready'
+            ];
+            const statusIndex = statuses.indexOf(status);
+            const percentage = statusIndex >= 0 ? Math.round(((statusIndex + 1) / statuses.length) * 100) : 0;
+
+            switch (status) {
+                case 'Ready':
+                    return { bg: 'bg-green-600', text: 'text-green-700', percentage };
+                case 'Proofreading':
+                    return { bg: 'bg-indigo-600', text: 'text-indigo-700', percentage };
+                case 'Team examination':
+                    return { bg: 'bg-yellow-500', text: 'text-yellow-600', percentage };
+                case 'Write-up/analysis in progress':
+                    return { bg: 'bg-blue-600', text: 'text-blue-700', percentage };
+                case 'Gathering literature':
+                    return { bg: 'bg-cyan-500', text: 'text-cyan-600', percentage };
+                case 'Review work':
+                    return { bg: 'bg-gray-400', text: 'text-gray-500', percentage };
+                default:
+                    return { bg: 'bg-gray-400', text: 'text-gray-500', percentage: 0 };
+            }
+        }
+        
+        // --- Event Listeners ---
+        showAdminBtn.addEventListener('click', () => showView('admin'));
+        showClientBtn.addEventListener('click', () => showView('client'));
+        backToSelectorAdminBtn.addEventListener('click', () => showView('selector'));
+        backToSelectorClientBtn.addEventListener('click', () => showView('selector'));
+        createProjectForm.addEventListener('submit', handleCreateProject);
+        checkStatusForm.addEventListener('submit', handleCheckStatus);
+        editProjectForm.addEventListener('submit', handleUpdateProject);
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        confirmDeleteBtn.addEventListener('click', handleDeleteProject);
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+
+        // --- App Start ---
+        initializeFirebase();
+        setupAuthListener();
+
+    </script>
+</body>
+</html>
